@@ -24,12 +24,40 @@ static void appendBit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *c
 static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len);
 
 /*Public fn*/
+/**
+ * @brief Delays execution for a specified number of microseconds.
+ *
+ * This function uses TIM2 to create a blocking delay.
+ * **Important:** The system must be configured to use the HSE clock source
+ * to ensure accurate timing.
+ *
+ * @param us  Duration of the delay in microseconds.
+ *
+ * @note This function is blocking and will halt CPU execution until the delay expires.
+ * @warning Requires that TIM2 is already initialized and running.
+ */
 void delayUs(uint32_t us) /*mandatory use HSE!*/
 {
 	uint16_t start = __HAL_TIM_GET_COUNTER(&htim2);
 	while ((__HAL_TIM_GET_COUNTER(&htim2) - start) < us);
 }
 
+/**
+ * @brief Sends a CAN frame bit-by-bit over a custom GPIO-based CAN interface.
+ *
+ * This function prepares a CAN frame with the specified ID, data length,
+ * and data payload, and then transmits it by writing each bit sequentially
+ * through the @ref gpioCanWriteBit function.
+ *
+ * @param id     CAN identifier (standard format 11 bits).
+ * @param dlc    Data length code (number of bytes in the data payload, 0–8).
+ * @param data   Pointer to an array containing the CAN frame payload.
+ *
+ * @note This function assumes that @ref prepareCanFrame has access
+ *       to and modifies global variables such as @ref bitstream and @ref bitstream_len.
+ * @warning The function is blocking and may take significant time depending
+ *          on the bit rate and frame size.
+ */
 void sendCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
 {
     prepareCanFrame(id, dlc, data);
