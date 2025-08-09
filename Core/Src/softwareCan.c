@@ -35,9 +35,7 @@ void sendCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
     prepareCanFrame(id, dlc, data);
 
     for (int i = 0; i < bitstream_len; i++)
-    {
         gpioCanWriteBit(bitstream[i]);
-    }
 }
 
 /*Private fn*/
@@ -80,18 +78,17 @@ static void appendBit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *c
 static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len)
 {
     uint16_t crc = 0;
-    const uint16_t poly = 0x4599;
+    const uint16_t poly = 0x4599; /*Polymian from CAN Bus standart*/
 
     for (int i = 0; i < bit_len; ++i)
     {
         uint8_t bit = bits[i];
         uint8_t crc_msb = (crc >> 14) & 1;
+
         crc <<= 1;
 
         if (bit ^ crc_msb)
-        {
             crc ^= poly;
-        }
     }
 
     return crc & 0x7FFF;
@@ -100,17 +97,19 @@ static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len)
 static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
 {
     bitstream_len = 0;
-    int count = 1;
-    uint8_t last = 0;
 
-    uint8_t crc_input[128];
+    int count = 1;
     int crc_bit_len = 0;
+
+    uint8_t last = 0;
+    uint8_t crc_input[128];
 
     // SOF
     appendBit(bitstream, &bitstream_len, 0, &last, &count);
 
     // 11-bit ID
-    for (int i = 10; i >= 0; i--) {
+    for (int i = 10; i >= 0; i--)
+    {
         uint8_t b = (id >> i) & 1;
         crc_input[crc_bit_len++] = b;
         appendBit(bitstream, &bitstream_len, b, &last, &count);
@@ -148,6 +147,7 @@ static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
 
     // CRC-15
     uint16_t crc = calculateCanCrc(crc_input, crc_bit_len);
+
     for (int i = 14; i >= 0; i--)
     {
         uint8_t b = (crc >> i) & 1;
