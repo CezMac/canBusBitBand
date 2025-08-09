@@ -21,14 +21,13 @@ static void prepare_can_frame(uint16_t id, uint8_t dlc, uint8_t *data);
 static void append_bit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *count);
 static uint16_t compute_can_crc(const uint8_t *bits, int bit_len);
 
-/*Publiczne funkcje*/
-void delay_us(uint32_t us) /*konieczne z HSE*/
+/*Public fn*/
+void delay_us(uint32_t us) /*mandatory use HSE!*/
 {
 	uint16_t start = __HAL_TIM_GET_COUNTER(&htim2);
 	while ((__HAL_TIM_GET_COUNTER(&htim2) - start) < us);
 }
 
-// === WYSYŁANIE RAMKI ===
 void send_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
 {
     prepare_can_frame(id, dlc, data);
@@ -39,13 +38,12 @@ void send_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
     }
 }
 
-/*Prywatne funkcje*/
-
+/*Private fn*/
 static void gpio_can_write_bit(uint8_t bit)
 {
     if (bit)
     	CAN_GPIO_Port->BSRR = CAN_Pin;
-    	//HAL_GPIO_WritePin(CAN_GPIO_Port, CAN_Pin, 1); /*zbyt dlugo sie wykonuje!*/
+    	//HAL_GPIO_WritePin(CAN_GPIO_Port, CAN_Pin, 1); /*too long execute!*/
     else
     	CAN_GPIO_Port->BRR = CAN_Pin;
     	//HAL_GPIO_WritePin(CAN_GPIO_Port, CAN_Pin, 0);
@@ -53,7 +51,6 @@ static void gpio_can_write_bit(uint8_t bit)
     delay_us(CAN_BIT_US);
 }
 
-// === DODAJ BIT Z OBSŁUGĄ STUFFINGU ===
 static void append_bit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *count)
 {
     buf[(*len)++] = bit;
@@ -77,7 +74,7 @@ static void append_bit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *
     *last = bit;
 }
 
-// === LICZENIE CRC-15 (CAN) ===
+/*Calculate a CAN CRC15*/
 static uint16_t compute_can_crc(const uint8_t *bits, int bit_len)
 {
     uint16_t crc = 0;
