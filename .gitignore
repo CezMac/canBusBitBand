@@ -1,0 +1,36 @@
+# STM32CubeIDE build folders
+Debug/
+Release/
+
+# STM32CubeMX generated output folders (if using)
+build/
+
+# User-specific & IDE settings
+*.launch
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+
+# CubeIDE metadata (optional – można zostawić jeśli chcesz udostępniać konfigurację IDE)
+.settings/
+.metadata/
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.a
+*.lib
+
+# Executable binaries
+*.elf
+*.hex
+*.bin
+*.map
+
+# Backup and autosave files
+*~
+*.autosave
