@@ -96,6 +96,7 @@ int main(void)
 
   uint8_t payload[] = {'H', 'e', 'l', 'l', 'o', 'C', 'A', 'N'};
   uint8_t len = sizeof(payload)/sizeof(payload[0]);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,7 +104,7 @@ int main(void)
   while (1)
   {
 	  sendCanFrame(0x123, len, payload);
-	  delayUs(100);
+	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
