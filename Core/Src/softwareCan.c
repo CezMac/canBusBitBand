@@ -139,8 +139,6 @@ static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
     uint8_t last = 0;
     uint8_t crc_input[255];
 
-    id &= 0x7FF;
-
     // SOF
     appendBit(bitstream, &bitstream_len, 0, &last, &count);
 
