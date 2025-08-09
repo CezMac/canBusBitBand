@@ -8,38 +8,40 @@
 #include "main.h"
 #include "softwareCan.h"
 
-#define CAN_BIT_US       8
-#define MAX_BITS         256
+#define CAN_ONE_BIT_TIME_US	8
+#define MAX_BITS         	256
 
+/*add own timmer instance*/
 extern TIM_HandleTypeDef htim2;
+/*-----------------------------*/
 
 static uint8_t bitstream[MAX_BITS];
 static int bitstream_len = 0;
 
-static void gpio_can_write_bit(uint8_t bit);
-static void prepare_can_frame(uint16_t id, uint8_t dlc, uint8_t *data);
-static void append_bit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *count);
-static uint16_t compute_can_crc(const uint8_t *bits, int bit_len);
+static void gpioCanWriteBit(uint8_t bit);
+static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data);
+static void appendBit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *count);
+static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len);
 
 /*Public fn*/
-void delay_us(uint32_t us) /*mandatory use HSE!*/
+void delayUs(uint32_t us) /*mandatory use HSE!*/
 {
 	uint16_t start = __HAL_TIM_GET_COUNTER(&htim2);
 	while ((__HAL_TIM_GET_COUNTER(&htim2) - start) < us);
 }
 
-void send_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
+void sendCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
 {
-    prepare_can_frame(id, dlc, data);
+    prepareCanFrame(id, dlc, data);
 
     for (int i = 0; i < bitstream_len; i++)
     {
-        gpio_can_write_bit(bitstream[i]);
+        gpioCanWriteBit(bitstream[i]);
     }
 }
 
 /*Private fn*/
-static void gpio_can_write_bit(uint8_t bit)
+static void gpioCanWriteBit(uint8_t bit)
 {
     if (bit)
     	CAN_GPIO_Port->BSRR = CAN_Pin;
@@ -48,10 +50,10 @@ static void gpio_can_write_bit(uint8_t bit)
     	CAN_GPIO_Port->BRR = CAN_Pin;
     	//HAL_GPIO_WritePin(CAN_GPIO_Port, CAN_Pin, 0);
 
-    delay_us(CAN_BIT_US);
+    delayUs(CAN_ONE_BIT_TIME_US);
 }
 
-static void append_bit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *count)
+static void appendBit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *count)
 {
     buf[(*len)++] = bit;
 
@@ -75,7 +77,7 @@ static void append_bit(uint8_t *buf, int *len, uint8_t bit, uint8_t *last, int *
 }
 
 /*Calculate a CAN CRC15*/
-static uint16_t compute_can_crc(const uint8_t *bits, int bit_len)
+static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len)
 {
     uint16_t crc = 0;
     const uint16_t poly = 0x4599;
@@ -95,7 +97,7 @@ static uint16_t compute_can_crc(const uint8_t *bits, int bit_len)
     return crc & 0x7FFF;
 }
 
-static void prepare_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
+static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
 {
     bitstream_len = 0;
     int count = 1;
@@ -105,24 +107,24 @@ static void prepare_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
     int crc_bit_len = 0;
 
     // SOF
-    append_bit(bitstream, &bitstream_len, 0, &last, &count);
+    appendBit(bitstream, &bitstream_len, 0, &last, &count);
 
     // 11-bit ID
     for (int i = 10; i >= 0; i--) {
         uint8_t b = (id >> i) & 1;
         crc_input[crc_bit_len++] = b;
-        append_bit(bitstream, &bitstream_len, b, &last, &count);
+        appendBit(bitstream, &bitstream_len, b, &last, &count);
     }
 
     // RTR = 0
     crc_input[crc_bit_len++] = 0;
-    append_bit(bitstream, &bitstream_len, 0, &last, &count);
+    appendBit(bitstream, &bitstream_len, 0, &last, &count);
     // IDE = 0
     crc_input[crc_bit_len++] = 0;
-    append_bit(bitstream, &bitstream_len, 0, &last, &count);
+    appendBit(bitstream, &bitstream_len, 0, &last, &count);
     // r0 = 0
     crc_input[crc_bit_len++] = 0;
-    append_bit(bitstream, &bitstream_len, 0, &last, &count);
+    appendBit(bitstream, &bitstream_len, 0, &last, &count);
 
     // DLC (4 bity)
     for (int i = 3; i >= 0; i--)
@@ -130,7 +132,7 @@ static void prepare_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
         uint8_t b = (dlc >> i) & 1;
 
         crc_input[crc_bit_len++] = b;
-        append_bit(bitstream, &bitstream_len, b, &last, &count);
+        appendBit(bitstream, &bitstream_len, b, &last, &count);
     }
 
     // DATA
@@ -140,22 +142,22 @@ static void prepare_can_frame(uint16_t id, uint8_t dlc, uint8_t *data)
         {
             uint8_t bit = (data[i] >> b) & 1;
             crc_input[crc_bit_len++] = bit;
-            append_bit(bitstream, &bitstream_len, bit, &last, &count);
+            appendBit(bitstream, &bitstream_len, bit, &last, &count);
         }
     }
 
     // CRC-15
-    uint16_t crc = compute_can_crc(crc_input, crc_bit_len);
+    uint16_t crc = calculateCanCrc(crc_input, crc_bit_len);
     for (int i = 14; i >= 0; i--)
     {
         uint8_t b = (crc >> i) & 1;
-        append_bit(bitstream, &bitstream_len, b, &last, &count);
+        appendBit(bitstream, &bitstream_len, b, &last, &count);
     }
 
     // CRC delimiter
-    append_bit(bitstream, &bitstream_len, 1, &last, &count);
+    appendBit(bitstream, &bitstream_len, 1, &last, &count);
 
     // ACK slot + delimiter
-    append_bit(bitstream, &bitstream_len, 0, &last, &count);
-    append_bit(bitstream, &bitstream_len, 1, &last, &count);
+    appendBit(bitstream, &bitstream_len, 0, &last, &count);
+    appendBit(bitstream, &bitstream_len, 1, &last, &count);
 }

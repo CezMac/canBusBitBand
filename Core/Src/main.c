@@ -102,8 +102,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  send_can_frame(0x123, len, payload);
-	  delay_us(100);
+	  sendCanFrame(0x123, len, payload);
+	  delayUs(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
