@@ -1,3 +1,3 @@
-This project is a software implementation of a CAN bus. An STM32F072 microcontroller is used. An external clock (HSE) must be used. The project uses an 8 MHz crystal. Additionally, the -O1 optimization must be enabled.
+This project is a software implementation of a CAN bus using an STM32F072 microcontroller. An external high-speed clock (HSE) running at 8 MHz is required. Additionally, compiler optimization level -O1 must be enabled.
 
-WARNING! This is only a sample CAN bus "bit banding" project. This project should not be used in real-world applications!
+WARNING: This is only a sample CAN bus project demonstrating bit-banding techniques. It is not intended for use in real-world applications!
