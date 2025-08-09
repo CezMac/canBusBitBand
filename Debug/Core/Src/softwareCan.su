@@ -1,0 +1,3 @@
+../Core/Src/softwareCan.c:57:13:append_bit	16	static
+../Core/Src/softwareCan.c:25:6:delay_us	0	static
+../Core/Src/softwareCan.c:32:6:send_can_frame	192	static
