@@ -104,7 +104,7 @@ int main(void)
   while (1)
   {
 	  sendCanFrame(0x123, len, payload);
-	  HAL_Delay(1);
+	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

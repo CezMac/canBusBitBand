@@ -8,12 +8,13 @@
 #include "main.h"
 #include "softwareCan.h"
 
+/*USER CONFIG*/
+extern TIM_HandleTypeDef htim2; /*add own timmer instance*/
+#define SIMULATION_MODE 0
+/*-----------------------------*/
+
 #define CAN_ONE_BIT_TIME_US	8
 #define MAX_BITS         	256
-
-/*add own timmer instance*/
-extern TIM_HandleTypeDef htim2;
-/*-----------------------------*/
 
 static uint8_t bitstream[MAX_BITS];
 static uint16_t bitstream_len;
@@ -193,7 +194,9 @@ static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
     // CRC delimiter
     appendBit(bitstream, &bitstream_len, 1, &last, &count);
 
+#if SIMULATION_MODE
     // ACK slot + delimiter
     appendBit(bitstream, &bitstream_len, 0, &last, &count);
     appendBit(bitstream, &bitstream_len, 1, &last, &count);
+#endif
 }
