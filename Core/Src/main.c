@@ -29,7 +29,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-initStruct_t can1;
+initStruct_t can1 = {0};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -66,7 +66,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	sendCanFrameStatus_t status;
+  sendCanFrameStatus_t status;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
