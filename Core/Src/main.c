@@ -66,7 +66,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	sendCanFrameStatus_t status;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -92,11 +92,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
-  initSoftwareCan(&can1, &htim2, CAN_TX_GPIO_Port, CAN_TX_Pin);
+  status = initSoftwareCan(&can1, &htim2, CAN_TX_GPIO_Port, CAN_TX_Pin);
+
+  if(status == PARAM_OK)
+	  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
 
   uint8_t payload[] = {'H', 'e', 'l', 'l', 'o', 'C', 'A', 'N'};
   uint8_t len = sizeof(payload)/sizeof(payload[0]);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
