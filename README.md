@@ -1,4 +1,4 @@
-This project is a software implementation of a CAN bus using an STM32F072 (nucleo board) microcontroller. 
+This project is a software implementation of a CAN bus (125 kbit/s) using an STM32F072 (nucleo board) microcontroller. 
 
 How to run:
 1) Use a HSE external crystal. Required for stable bit generation.
