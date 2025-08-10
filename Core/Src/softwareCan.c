@@ -18,7 +18,7 @@
 static uint8_t bitstream[MAX_BITS];
 static uint16_t bitstream_len;
 
-initStruct_t canConfig;
+static initStruct_t canConfig = {0};
 
 static void gpioCanWriteBit(uint8_t bit);
 static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data);
@@ -43,10 +43,13 @@ static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len);
  * @note This function must be called before using any CAN bit timing functions,
  *       such as delayUs().
  */
-sendCanFrameStatus_t initSoftwareCan(TIM_HandleTypeDef *tim, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
+sendCanFrameStatus_t initSoftwareCan(TIM_HandleTypeDef *tim, GPIO_TypeDef* gpioPort, uint16_t GPIO_Pin)
 {
+	if (tim == NULL || gpioPort == NULL)
+		return ERROR_PARAM;
+
 	canConfig.tim = tim;
-	canConfig.gpioPort = GPIOx;
+	canConfig.gpioPort = gpioPort;
 	canConfig.pin = GPIO_Pin;
 
 	return PARAM_OK;
@@ -227,4 +230,5 @@ static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
     appendBit(bitstream, &bitstream_len, 0, &last, &count);
     appendBit(bitstream, &bitstream_len, 1, &last, &count);
 #endif
+
 }

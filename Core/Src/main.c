@@ -29,7 +29,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -45,7 +44,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,7 +91,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
-  initSoftwareCan(&htim2, CAN_GPIO_Port, CAN_Pin);
+  initSoftwareCan(&htim2, CAN_TX_GPIO_Port, CAN_TX_Pin);
 
   uint8_t payload[] = {'H', 'e', 'l', 'l', 'o', 'C', 'A', 'N'};
   uint8_t len = sizeof(payload)/sizeof(payload[0]);
@@ -105,7 +103,7 @@ int main(void)
   while (1)
   {
 	  sendCanFrame(0x123, len, payload);
-	  HAL_Delay(100);
+	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
