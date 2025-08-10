@@ -7,7 +7,7 @@ How to run:
 4) Include a softwareCan.h file.
 5) In compiler setting, set a optimization level -O2.
 6) Run a timer.
-7) Call a function initSoftwareCan() with a parameters: your timer handler, your gpio port and your gpio pin.
+7) Call a function initSoftwareCan() with a parameters: your init struct, your timer handler, your gpio port and your gpio pin.
 8) Preape a data to send (payload and size).
 10) Call a function sendCanFrame() with a parameters: CAN_ID (11bit), payload, size (max 8 byte).
 11) Connect to a logic analazer to your CAN bit banding pin & enjoy!
