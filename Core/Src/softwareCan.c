@@ -9,8 +9,7 @@
 #include "softwareCan.h"
 
 /*USER CONFIG*/
-extern TIM_HandleTypeDef htim2; /*add own timmer instance*/
-#define SIMULATION_MODE 0
+#define SIMULATION_MODE 1
 /*-----------------------------*/
 
 #define CAN_ONE_BIT_TIME_US	8
@@ -19,12 +18,39 @@ extern TIM_HandleTypeDef htim2; /*add own timmer instance*/
 static uint8_t bitstream[MAX_BITS];
 static uint16_t bitstream_len;
 
+initStruct_t canConfig;
+
 static void gpioCanWriteBit(uint8_t bit);
 static void prepareCanFrame(uint16_t id, uint8_t dlc, uint8_t *data);
 static void appendBit(uint8_t *buf, uint16_t *len, uint8_t bit, uint8_t *last, int *count);
 static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len);
 
 /*Public fn*/
+/**
+ * @brief  Initializes the software CAN configuration.
+ *
+ * This function sets up the global CAN software configuration structure
+ * with the provided timer handle, GPIO port, and GPIO pin. The timer is
+ * typically configured to run at 1 MHz for accurate microsecond delays.
+ *
+ * @param[in] tim      Pointer to the timer handle used for timing operations.
+ * @param[in] GPIOx    Pointer to the GPIO port used for CAN signal control.
+ * @param[in] GPIO_Pin GPIO pin number used for CAN signal output.
+ *
+ * @retval PARAM_OK    Configuration was set successfully.
+ * @retval PARAM_ERROR Reserved for future error handling.
+ *
+ * @note This function must be called before using any CAN bit timing functions,
+ *       such as delayUs().
+ */
+sendCanFrameStatus_t initSoftwareCan(TIM_HandleTypeDef *tim, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
+{
+	canConfig.tim = tim;
+	canConfig.gpioPort = GPIOx;
+	canConfig.pin = GPIO_Pin;
+
+	return PARAM_OK;
+}
 /**
  * @brief Delays execution for a specified number of microseconds.
  *
@@ -39,9 +65,9 @@ static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len);
  */
 void delayUs(uint32_t us) /*mandatory use HSE!*/
 {
-	uint16_t start = __HAL_TIM_GET_COUNTER(&htim2);
+	uint16_t start = __HAL_TIM_GET_COUNTER(canConfig.tim);
 
-	while ((__HAL_TIM_GET_COUNTER(&htim2) - start) < us);
+	while ((__HAL_TIM_GET_COUNTER(canConfig.tim) - start) < us);
 }
 
 /**
@@ -77,10 +103,12 @@ sendCanFrameStatus_t sendCanFrame(uint16_t id, uint8_t dlc, uint8_t *data)
 static void gpioCanWriteBit(uint8_t bit)
 {
     if (bit)
-    	CAN_GPIO_Port->BSRR = CAN_Pin;
+    	canConfig.gpioPort->BSRR = canConfig.pin;
+    	//CAN_GPIO_Port->BSRR = CAN_Pin;
     	//HAL_GPIO_WritePin(CAN_GPIO_Port, CAN_Pin, 1); /*too long execute!*/
     else
-    	CAN_GPIO_Port->BRR = CAN_Pin;
+    	canConfig.gpioPort->BRR = canConfig.pin;
+    	//CAN_GPIO_Port->BRR = CAN_Pin;
     	//HAL_GPIO_WritePin(CAN_GPIO_Port, CAN_Pin, 0);
 
     delayUs(CAN_ONE_BIT_TIME_US);
