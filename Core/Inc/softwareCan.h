@@ -26,7 +26,6 @@ typedef enum{
 	PARAM_OK
 } sendCanFrameStatus_t;
 
-void delayUs(initStruct_t *init, uint32_t us);
 sendCanFrameStatus_t initSoftwareCan(initStruct_t *init, TIM_HandleTypeDef *tim, GPIO_TypeDef* gpioPort, uint16_t GPIO_Pin);
 sendCanFrameStatus_t sendCanFrame(initStruct_t *init, uint16_t id, uint8_t dlc, uint8_t *data);
 

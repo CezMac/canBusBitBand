@@ -11,8 +11,10 @@
 /*USER CONFIG*/
 #define SIMULATION_MODE 1
 /*-----------------------------*/
-#define CAN_ONE_BIT_TIME_US	8
 
+#define CAN_ONE_BIT_TIME_US	8 /*125 kbit/s*/
+
+static void delayUs(initStruct_t *init, uint32_t us);
 static void gpioCanWriteBit(initStruct_t *init, uint8_t bit);
 static void prepareCanFrame(initStruct_t *init, uint16_t id, uint8_t dlc, uint8_t *data);
 static void appendBit(uint8_t *buf, uint16_t *len, uint8_t bit, uint8_t *last, int *count);
@@ -20,21 +22,33 @@ static uint16_t calculateCanCrc(const uint8_t *bits, int bit_len);
 
 /*Public fn*/
 /**
- * @brief  Initializes the software CAN configuration.
+ * @brief Initializes the software CAN handle structure.
  *
- * This function sets up the global CAN software configuration structure
- * with the provided timer handle, GPIO port, and GPIO pin. The timer is
- * typically configured to run at 1 MHz for accurate microsecond delays.
+ * This function sets up the CAN handle with the provided timer handle,
+ * GPIO port, and GPIO pin. The timer is typically configured to run at
+ * 1 MHz for accurate microsecond delays. Each handle represents an
+ * independent CAN interface instance.
  *
- * @param[in] tim      Pointer to the timer handle used for timing operations.
- * @param[in] GPIOx    Pointer to the GPIO port used for CAN signal control.
- * @param[in] GPIO_Pin GPIO pin number used for CAN signal output.
+ * @param[in,out] init     Pointer to the CAN handle structure to initialize
+ * @param[in]     tim      Pointer to the timer handle used for timing operations
+ * @param[in]     gpioPort Pointer to the GPIO port used for CAN signal control
+ * @param[in]     GPIO_Pin GPIO pin number used for CAN signal output
  *
- * @retval PARAM_OK    Configuration was set successfully.
- * @retval PARAM_ERROR Reserved for future error handling.
+ * @retval PARAM_OK    Handle was initialized successfully
+ * @retval ERROR_PARAM One or more parameters are invalid (NULL pointers or zero pin)
  *
- * @note This function must be called before using any CAN bit timing functions,
- *       such as delayUs().
+ * @note This function must be called before using any other CAN functions
+ *       with this handle instance.
+ * @warning The timer must be pre-configured and running before calling this function.
+ *
+ * @example
+ * @code
+ * static initStruct_t canHandle = {0};
+ * sendCanFrameStatus_t status = initSoftwareCan(&canHandle, &htim2, GPIOA, GPIO_PIN_5);
+ * if (status != PARAM_OK) {
+ *     // Handle initialization error
+ * }
+ * @endcode
  */
 sendCanFrameStatus_t initSoftwareCan(initStruct_t *init, TIM_HandleTypeDef *tim, GPIO_TypeDef *gpioPort, uint16_t GPIO_Pin)
 {
@@ -48,40 +62,52 @@ sendCanFrameStatus_t initSoftwareCan(initStruct_t *init, TIM_HandleTypeDef *tim,
 
 	return PARAM_OK;
 }
-/**
- * @brief Delays execution for a specified number of microseconds.
- *
- * This function uses TIM2 to create a blocking delay.
- * **Important:** The system must be configured to use the HSE clock source
- * to ensure accurate timing.
- *
- * @param us  Duration of the delay in microseconds.
- *
- * @note This function is blocking and will halt CPU execution until the delay expires.
- * @warning Requires that TIM2 is already initialized and running.
- */
-void delayUs(initStruct_t *init, uint32_t us) /*mandatory use HSE!*/
-{
-	uint16_t start = __HAL_TIM_GET_COUNTER(init->tim);
-
-	while ((__HAL_TIM_GET_COUNTER(init->tim) - start) < us);
-}
 
 /**
- * @brief Sends a CAN frame bit-by-bit over a custom GPIO-based CAN interface.
+ * @brief Transmits a CAN frame bit-by-bit over a GPIO-based CAN interface.
  *
- * This function prepares a CAN frame with the specified ID, data length,
- * and data payload, and then transmits it by writing each bit sequentially
- * through the @ref gpioCanWriteBit function.
+ * This function constructs and transmits a standard CAN 2.0A data frame
+ * with the specified identifier, data length, and payload. The frame is
+ * sent bit-by-bit using GPIO bit-banging with precise timing control.
+ * The function handles CRC calculation, bit stuffing, and proper CAN
+ * frame formatting automatically.
  *
- * @param id     CAN identifier (standard format 11 bits).
- * @param dlc    Data length code (number of bytes in the data payload, 0–8).
- * @param data   Pointer to an array containing the CAN frame payload.
+ * @param[in,out] init Pointer to initialized CAN handle structure
+ * @param[in]     id   CAN identifier (11-bit standard format, range: 0x000-0x7FF)
+ * @param[in]     dlc  Data Length Code - number of data bytes (range: 0-8)
+ * @param[in]     data Pointer to data buffer containing payload bytes
+ *                     (must not be NULL, even if dlc=0)
  *
- * @note This function assumes that @ref prepareCanFrame has access
- *       to and modifies global variables such as @ref bitstream and @ref bitstream_len.
- * @warning The function is blocking and may take significant time depending
- *          on the bit rate and frame size.
+ * @retval PARAM_OK    CAN frame transmitted successfully
+ * @retval ERROR_PARAM Invalid parameters:
+ *                     - id > 0x7FF (exceeds 11-bit limit)
+ *                     - dlc > 8 (exceeds maximum data length)
+ *                     - data == NULL (invalid data pointer)
+ *                     - Handle not initialized
+ *
+ * @note This function is blocking and will take approximately
+ *       (64 + dlc*8) * 8µs to complete for a typical frame.
+ * @warning Interrupts should be disabled during transmission to ensure
+ *          accurate bit timing.
+ * @warning This function modifies the internal bitstream buffer of the handle.
+ *
+ * @example
+ * @code
+ * static initStruct_t canHandle = {0};
+ * uint8_t txData[] = {0xAA, 0xBB, 0xCC, 0xDD};
+ *
+ * // Initialize handle first
+ * initSoftwareCan(&canHandle, &htim2, GPIOA, GPIO_PIN_5);
+ *
+ * // Send CAN frame with ID 0x123 and 4 bytes of data
+ * sendCanFrameStatus_t status = sendCanFrame(&canHandle, 0x123, 4, txData);
+ * if (status != PARAM_OK) {
+ *     // Handle transmission error
+ * }
+ * @endcode
+ *
+ * @see initSoftwareCan() must be called before using this function
+ * @see prepareCanFrame() for internal frame construction details
  */
 sendCanFrameStatus_t sendCanFrame(initStruct_t *init, uint16_t id, uint8_t dlc, uint8_t *data)
 {
@@ -97,6 +123,13 @@ sendCanFrameStatus_t sendCanFrame(initStruct_t *init, uint16_t id, uint8_t dlc, 
 }
 
 /*Private fn*/
+void delayUs(initStruct_t *init, uint32_t us) /*mandatory use HSE!*/
+{
+	uint16_t start = __HAL_TIM_GET_COUNTER(init->tim);
+
+	while ((__HAL_TIM_GET_COUNTER(init->tim) - start) < us);
+}
+
 static void gpioCanWriteBit(initStruct_t *init, uint8_t bit)
 {
     if (bit)
